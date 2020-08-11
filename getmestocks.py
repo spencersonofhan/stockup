@@ -8,48 +8,62 @@ import requests
 import json
 import os
 
-# https://www.youtube.com/watch?v=DOHg16zcUCc
-# Followed this tutorial ^^^
-# NOT MY CODE!
+BEGINNING = '2012-01-01'
+ENDING = str(datetime.now().strftime('%Y-%m-%d'))
 
-START_DATE = '2009-01-01'
-END_DATE = str(datetime.now().strftime('%Y-%m-%d'))
+STOCKS = []
+stockData = []
 
-STOCK = 'UCO'
+# Reads and returns stock symbols from stocks.txt
+def get_symbols():
+    temp_stocks = []
+    stockFile = open('stocks.txt')
+    for line in stockFile:
+        temp_stocks.append(line.rstrip())
 
-def get_data(ticker):
-    try:
-        stock_data = data.DataReader(ticker, 'yahoo', START_DATE, END_DATE)
-        adj_close = clean_data(stock_data, 'Adj Close')
-        create_plot(adj_close, ticker)
-        print(stock_data.head(10))
+    return temp_stocks
 
-    except RemoteDataError:
-        print('No data found for {t}'.format(t=ticker))
+# Returns a list of Pandas DataFrames that hold historical price data
+def getStockData(symbols):
+    tempStockData = []
+    for ticker in symbols:
+        try:
+            rawData = data.DataReader(ticker, 'yahoo', BEGINNING, ENDING)
+            adj_close = selectData(rawData, 'Adj Close')
+            tempStockData.append(adj_close)
+        except RemoteDataError:
+            print('\'{t}\' data not found'.format(t=ticker))
 
-def clean_data(stock_data, col):
-    weekdays = pd.date_range(start=START_DATE, end=END_DATE)
-    clean_data = stock_data[col].reindex(weekdays)
-    return clean_data.fillna(method='ffill')
+    return tempStockData
 
-def get_stats(stock_data):
+# Returns a dictionary of useful statistics
+def getStats(stockData):
     return {
-        'last': np.mean(stock_data.tail(1)),
-        'short_mean': np.mean(stock_data.tail(20)),
-        'long_mean': np.mean(stock_data.tail(200)),
-        'short_rolling_mean': stock_data.rolling(window=20).mean(),
-        'long_rolling_mean': stock_data.rolling(window=200).mean()
+        'last': np.mean(stockData.tail(1)),
+        'short_mean': np.mean(stockData.tail(20)),
+        'long_mean': np.mean(stockData.tail(200)),
+        'short_rolling_mean': stockData.rolling(window=20).mean(),
+        'long_rolling_mean': stockData.rolling(window=200).mean(),
+        'rolling_std': stockData.rolling(20).std(),
+        'mult_returns': stockData.pct_change()[1:]
     }
 
-def create_plot(stock_data, ticker):
-    stats = get_stats(stock_data)
+# Returns specified column and reindexes, also forward fills nan's
+def selectData(stockData, col):
+    weekdays = pd.date_range(start=BEGINNING, end=ENDING)
+    selectedData = stockData[col].reindex(weekdays)
+    return selectedData.fillna(method='ffill')
+
+
+# Uses matplotlib to create a simple graph
+def createGraph(symbols, stockData):
     plt.style.use('dark_background')
-
     plt.subplots(figsize=(12, 8))
-    plt.plot(stock_data, label=ticker)
-    plt.plot(stats['short_rolling_mean'], label='20 day rolling mean')
-    plt.plot(stats['long_rolling_mean'], label='200 day rolling mean')
-
+    for ticker in range(len(stockData)):
+        stats = getStats(stockData[ticker])
+        plt.plot(stockData[ticker], label=symbols[ticker])
+        # plt.plot(stats['short_rolling_mean'], label='20 day rolling mean')
+        # plt.plot(stats['long_rolling_mean'], label='200 day rolling mean')
 
     plt.xlabel('Date')
     plt.ylabel('Adj Close Price')
@@ -58,12 +72,15 @@ def create_plot(stock_data, ticker):
 
     plt.show()
 
-get_data(STOCK)
-# # IEX Cloud sandbox variables
-# sandboxUrl = 'https://sandbox.iexapis.com/'
-# sandboxToken = os.environ['IEX_TOKEN']
-#
-# x = requests.get(sandboxUrl + 'stable/stock/ibm/financials?token='
-# + sandboxToken)
-#
-# print(json.loads(x.text)['symbol'])
+def print_data(symbols, dataList):
+    if dataList:
+        for stock in range(len(dataList)):
+            print("\n$!-- Stock data for \'{:s}\' --!$".format(symbols[stock]))
+            print(dataList[stock])
+    else:
+        print("No data was found!")
+
+STOCKS = get_symbols()
+stockData = getStockData(STOCKS)
+print_data(STOCKS, stockData)
+createGraph(STOCKS, stockData)
