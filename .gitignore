@@ -1,6 +1,7 @@
+*.json
 *.out
 *.txt
 *.csv
 build/
 lbuild/
-
+.vscode/
