@@ -1,6 +1,7 @@
 import csv
 import time
 import datetime
+import requests
 
 now = datetime.datetime.now()
 currentDate = str(now.year) + "-" + str(now.month) + "-" + str(now.day)
@@ -20,3 +21,16 @@ with open('bought.csv', 'r') as file:
         stocks.append(row[0])
 
 print(stocks)
+
+tData = {
+        "symbol": "GOOGL",
+        "qty": 1,
+        "side": "buy",
+        "type": "market",
+        "time_in_force": "day"
+        }
+
+# heads
+
+GETReq = requests.post("https://paper-api.alpaca.markets/v2/orders", headers=heads, json=tData)
+print(GETReq.content)
