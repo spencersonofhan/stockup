@@ -2,6 +2,7 @@
 *.out
 *.txt
 *.csv
+*.config
 build/
 lbuild/
 .vscode/
