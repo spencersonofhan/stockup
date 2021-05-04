@@ -49,7 +49,7 @@ def getCryptoSymbols():
 
     user_symbols = []
     for i in range(df.shape[0]):
-        user_symbols.append(df.iloc[i,0].upper() + "USD")
+        user_symbols.append(df.iloc[i,0].upper() + "USDT")
 
     return user_symbols
 
@@ -100,8 +100,16 @@ def main():
         client = Client(credentials['keyId'], credentials['secretKey'])
         symbols = getCryptoSymbols()
 
+        print("CURRENT DATE: " + str(datetime.datetime.fromtimestamp(time.time())))
         for i in range(len(symbols)):
-            print(client.get_all_tickers())
+            candle = client.get_klines(symbol=symbols[i], interval=Client.KLINE_INTERVAL_30MINUTE)
+            offset = int(time.time() - (candle[0][6] // 1000))
+            openTime = datetime.datetime.fromtimestamp((candle[0][0] // 1000) + offset)
+            closeTime = datetime.datetime.fromtimestamp((candle[0][6] // 1000) + offset)
+            
+            print(symbols[i])
+            print("Open " + str(openTime))
+            print("Close: " + str(closeTime))
 
 
     # url = buildURL()
